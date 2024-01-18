@@ -1,0 +1,140 @@
+﻿-------------------------Using Excel as Worksheet--------------
+
+//reading Excel from Entire row
+to handle ExcelFileReadingEntirerow ExcelFileName,SheetNumber,RowNum
+	set MyExcelFile to Workbook(ResourcePath(ExcelFileName))
+	set MySheet to worksheet(MyExcelFile,SheetNumber)
+	put MySheet.cellRange (RowNum) into RowData
+	return RowData
+end ExcelFileReadingEntirerow
+
+
+//reading Excel data from a Particular Cell
+to handle ExcelFileReading ExcelFileName,SheetNumber,RowNum,ColNum
+	set MyExcelFile to Workbook(ResourcePath(ExcelFileName))
+	set MySheet to worksheet(MyExcelFile,SheetNumber)
+	return MySheet.cell(RowNum,ColNum)
+end ExcelFileReading
+
+
+//Write Excel data into a Particular Cell
+to handle WritingDataIntoCell ExcelFileName,SheetNumber,RowNum,ColNum,Data
+	set MyExcelFile to Workbook(ResourcePath(ExcelFileName))
+	set MySheet to worksheet(MyExcelFile,SheetNumber)
+	put Data into MySheet.cell(RowNum,ColNum)
+end WritingDataIntoCell
+
+
+//Update Excel data for a Particular Cell
+to handle UpdateCellData ExcelFileName,SheetNumber,RowNum,ColNum,Data
+	set MyExcelFile to Workbook(ResourcePath(ExcelFileName))
+	set MySheet to worksheet(MyExcelFile,SheetNumber)
+	put MySheet.cell(RowNum,ColNum)&& Data into MySheet.cell(RowNum,ColNum)
+	return MySheet.cell(RowNum,ColNum)
+end UpdateCellData
+
+
+//Delete Excel data from a Particular Cell
+to handle DeleteCellData ExcelFileName,SheetNumber,RowNum,ColNum
+	set MyExcelFile to Workbook(ResourcePath(ExcelFileName))
+	set MySheet to worksheet(MyExcelFile,SheetNumber)
+	put "" into MySheet.cell(RowNum,ColNum)
+end DeleteCellData
+
+
+------------------------Using CSV--------------
+
+// Read data from a particular cell
+To ReadCsvData FileName,ItemNum,LineNum
+	set MyCsvFile to ResourcePath(FileName)
+	//reading a particular item from a particular line
+	put item ItemNum of line LineNum of file MyCsvFile into ItemValue
+	//reading a particular line
+	put line LineNum of file MyFile into ItemsOfLine
+	return [ItemValue, ItemsOfLine]
+End ReadCsvData
+
+
+// To write data into a cell 
+To WriteDataintoCsv FileName,Value,ItemNum,LineNum
+	set MyCsvFile to ResourcePath(FileName)
+	//putting value into a pariticular cell by giving line number and item number
+	put Value into item ItemNum of line LineNum of file MyCsvFile
+End WriteDataintoCsv
+
+
+//Update Data in a particular cell
+To UpdateCsvData FileName,Value,ItemNum,LineNum
+	set MyCsvFile to ResourcePath(FileName)
+	//putting value into a pariticular cell by giving line number and item number
+	put Value into item ItemNum of line LineNum of file MyCsvFile
+End UpdateCsvData
+
+
+//Delete the data in a particular cell
+To DeleteCsvData FileName,ItemNum,LineNum
+	set MyCsvFile to ResourcePath(FileName)
+	//deleting value into a pariticular cell by giving line number and item number
+	delete item ItemNum of line LineNum of file MyCsvFile
+End DeleteCsvData
+
+------------------------Using Excel as Database--------------
+(*Reading Records from given File*)
+
+//to Read a record from file where the condition matches
+to ReadSingleRecord ExcelName,SheetName,UserValue 
+	set Global MyExcelDB to {file:ResourcePath(ExcelName), type:"excel",name:SheetName}
+	//set global variable to single record where username matches to given value
+	Set Global CurrentRecord to the record of Global MyExcelDB where Flag is UserValue
+end ReadSingleRecord
+
+
+//to Read multiple records from file where the condition matches
+to ReadMultipleRecords ExcelName,SheetName,FlagValue 
+	set Global MyExcelDB to {file:ResourcePath(ExcelName), type:"excel",name:SheetName}
+	//set global variable to multiple records where flag matches to given value
+	Set Global CurrentRecord to the records of Global MyExcelDB where flag is FlagValue
+end ReadMultipleRecords
+
+
+//to Read multiple records from file with out any condition
+to ReadMultipleRecords_withoutConditions ExcelName,SheetName
+	set Global MyExcelDB to {file:ResourcePath(ExcelName), type:"excel",name:SheetName}
+	//set global variable to multiple records where flag matches to given value
+	Set Global CurrentRecord to the records of Global MyExcelDB
+end ReadMultipleRecords_withoutConditions
+
+
+(*Writing Records to given File*)
+
+//to write a single record into file
+to WriteSingleRecord ExcelName,SheetName,Price,Total
+	set Global MyExcelDB to {file:ResourcePath(ExcelName), type:"excel", writeable:yes,name:SheetName}
+	//set a variable to record values
+	set NewRecord to {Price:Price, TotalPrice:Total}
+	//adding variable as record to file which contains data 
+	add record NewRecord to Global MyExcelDB
+end WriteSingleRecord
+
+
+(*Updating a Record in given File*)
+
+//to Updating the Existing record
+to UpdateSingleRecord ExcelName,SheetName,UserName,Flag,User,Password
+	set Global MyExcelDB to {file:ResourcePath(ExcelName), type:"excel", writeable:yes,name:SheetName}
+	set Global RecordData to the record of Global myExcelDB where username is UserName
+	put Flag into Global RecordData's Flag
+	put User into Global RecordData's Username
+	put Password into Global RecordData's Password
+end UpdateSingleRecord
+
+
+(*Deleting Record in a given File*)
+
+//deleting records where the condition matches
+to DeleteRecords ExcelName,SheetName,FalgValue
+	set Global MyExcelDB to {file:ResourcePath(ExcelName), type:"excel", writeable:yes,name:SheetName}
+	//deleting a record where it matches with flag value
+	delete record from Global MyExcelDB where Flag is FalgValue 
+end DeleteRecords
+

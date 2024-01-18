@@ -1,0 +1,67 @@
+﻿to captureScreenShot screenShotName
+	CaptureScreen name:screenShotName, increment:Yes
+end captureScreenShot
+
+
+to clikSubMenu menu, subMenu
+	"CommonUtilities/Core".moveToEvent menu
+	wait 0.5
+	"CommonUtilities/Core".clickEvent subMenu
+end clikSubMenu
+
+
+to addProductToCart productName
+	"CommonUtilities/Core".scrollTo productName, "FullScreen"
+	put ImageLocation(text:productName) into producLocation
+	set the SearchRectangle to [[producLocation.x-100,producLocation.y-50],[producLocation.x+200,producLocation.y+200]]
+	If ImageFound(text:"ADD TO CART") then
+		Click FoundImageLocation()
+	else 
+		set the SearchRectangle to empty
+		put ImageLocation(text:productName) into producLocation
+		set the SearchRectangle to [[producLocation.x-100,producLocation.y-50],[producLocation.x+200,producLocation.y+200]]
+		repeat until ImageFound(text:"ADD TO CART")
+			ScrollWheelDown 3
+			set the SearchRectangle to empty
+			put ImageLocation(text:productName) into producLocation
+			set the SearchRectangle to [[producLocation.x-100,producLocation.y-50],[producLocation.x+200,producLocation.y+200]]
+			if repeatIndex() > 3 then exit repeat
+		end repeat
+		If ImageFound(text:"ADD TO CART") then	Click FoundImageLocation() else LogError "ADD TO CART option is not found."
+	End If 
+	set the SearchRectangle to empty
+end addProductToCart
+
+
+to select_BuildOwnComputer
+	"CommonUtilities/Custom".addProductToCart Global ProductName
+end select_BuildOwnComputer
+
+
+to fill_Options_For_BuildingOwnComputer
+	"CommonUtilities/Core".clickEventOffset "RAM", [10,30], Global Ram
+	"CommonUtilities/Core".clickEvent Global Ram
+	"CommonUtilities/Core".scrollTo "HDD", "FullScreen"
+	"CommonUtilities/Core".clickEvent Global Hdd
+	"CommonUtilities/Core".scrollTo "ADD TO CART", "FullScreen"
+	"CommonUtilities/Core".textEntryOffset "ADD TO CART",Global NoOfProducts, [-30,0]
+	"CommonUtilities/Custom".captureScreenShot "FilledOptions"
+	"CommonUtilities/Core".clickEvent "ADD TO CART"
+	"CommonUtilities/Core".verifyEvent "The product has been added to your", "Product is added to Cart", "Failed to add product to cart."	
+	"CommonUtilities/Custom".captureScreenShot "Message"
+end fill_Options_For_BuildingOwnComputer
+
+
+
+to readPriceandTotal
+	put ImageLocation(text:"Price") into priceLocation
+	set the SearchRectangle to [[priceLocation.x-30,priceLocation.y+30],[priceLocation.x+70,priceLocation.y+200]]
+	put ReadText(the SearchRectangle) into Price
+	set the SearchRectangle to empty
+	put ImageLocation(text:"Total") into totalLocation
+	set the SearchRectangle to [[totalLocation.x-30,totalLocation.y+30],[totalLocation.x+70,totalLocation.y+200]]
+	put ReadText(the SearchRectangle,"CommonUtilities/Core".setTextstyle("Dots144")) into Total
+	"CommonUtilities/Core".setTextstyle "Default"
+	//Capture data from Application
+	"CommonUtilities/ExternalFileInteractions".WriteSingleRecord "UserData.xlsx", "Data", Price, Total
+end readPriceandTotal

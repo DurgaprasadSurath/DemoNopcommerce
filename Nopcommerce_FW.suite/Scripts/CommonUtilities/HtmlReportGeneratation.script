@@ -1,0 +1,438 @@
+﻿
+(*
+***********************************************************************************************************************************
+# This script is designed to generate an HTML report using the most recent results from the RunHistory.csv file and the log file associated with the specified script name.
+# You can call this function from any location by providing the script names to the handler for which you expect an HTML report.
+# Modified Date: 04/01/2024
+# Created By: Durgaprasad.Surath@non.keysight.com
+***********************************************************************************************************************************
+*)
+
+to GenerateHtmlReport
+
+	# Initiating Global Variables 
+	Global ReportGenrationDateTime
+	Global TotalErrorsCount
+	Global TotalSuccessesCount
+	Global ScriptNames
+	Global InitialDetailedTable
+	
+	# Initiaing Variables with values
+	set (ReportGenrationDateTime, InitialDetailedTable) to empty
+	set (TotalErrorsCount, TotalSuccessesCount) to 0
+	set (TableCount, ReportCount) to 1
+	
+	# Getting the Number of Scripts that are passed to Handler and Names of Scripts
+	if the number of items of parameterList()...
+		...is 1 then 
+			put the number of items of item 1 of parameterList() into NumberOfScripts
+			put item 1 of parameterList() into ScriptNames
+		else 
+			put the number of items of parameterList() into NumberOfScripts
+			put parameterList() into ScriptNames
+	end if
+	
+	# Repeating Loop by Number of Scripts Passed to Handler
+	Repeat NumberOfScripts times
+		
+		# Storing the Script Name into Variable
+		put item repeatIndex() of ScriptNames into ScriptName
+		
+		# Storing the Script Results Folder Path into Variable
+		put SuiteInfo().path&"/Results/"&ScriptName into ScriptResultFolder
+		
+		# Storing the RunHistory.csv file into Variable
+		put file (ScriptResultFolder&"/RunHistory.csv") into RunHistoryCSV
+		
+		# Getting the total rows in the RunHistory.csv file 
+		put the number of lines of RunHistoryCSV into LatestRowData	
+		
+		# Putting all required to their particular Variables
+		put item 1 of line LatestRowData of RunHistoryCSV into ExecutionDateRun
+		put item 2 of line LatestRowData of RunHistoryCSV into ExecutionStatus
+		put item 3 of line LatestRowData of RunHistoryCSV into ExecutionDuration
+		put item 4 of line LatestRowData of RunHistoryCSV into ExecutionErrors
+		put item 5 of line LatestRowData of RunHistoryCSV into ExecutionWarnings
+		put item 6 of line LatestRowData of RunHistoryCSV into ExecutionExceptions
+		put item 7 of line LatestRowData of RunHistoryCSV into RelativeLocationOfLogFile
+		put item 10 of line LatestRowData of RunHistoryCSV into ExecutionSuccesses
+		
+		# Removing the quotes from the Exection Status string
+		delete quote from ExecutionStatus
+		
+		# Separating the Run Date to get the Execution Timings
+		split ExecutionDateRun by "+"
+		put item 1 of ExecutionDateRun into ExecutionDateRunWithOutZone
+		
+		# Splitting the Run Date Time to aviod the Milli Seconds
+		put ExecutionDateRunWithOutZone into ExecutionDateRunWithMilliSeconds
+		split ExecutionDateRunWithMilliSeconds by "."
+		put item 1 of ExecutionDateRunWithMilliSeconds into ExecutionDateRunWithOutMilliSeconds
+		
+		# Splitting the Run Date Time to get the Time 
+		put ExecutionDateRunWithOutZone into ExecutionStartDateTimeWithOutZone
+		split ExecutionStartDateTimeWithOutZone by space	
+		
+		# Basic calculation for adding the Duration to the Run Time
+		put asTime(ExecutionDuration) into WholeExecutionDuration
+		put item 2 of ExecutionStartDateTimeWithOutZone into ExecutionStartTime
+		put asTime(ExecutionStartTime) into ExecutionStartTime
+		set [AddHour, AddMinute, AddSecond] to [ExecutionStartTime.hour, ExecutionStartTime.minute, ExecutionStartTime.second]
+		put WholeExecutionDuration + AddHour hour + AddMinute minute + AddSecond sec into ExecutionEndTime
+		put (item 1 of ExecutionStartDateTimeWithOutZone && ExecutionEndTime) into FinalExecutionEndDateTime
+		
+		# Incrementing the Total Count of Error in Executions
+		put (TotalErrorsCount + ExecutionErrors) into TotalErrorsCount 
+		
+		# Incrementing the Total Count of Success in Executions
+		put (TotalSuccessesCount + ExecutionSuccesses) into TotalSuccessesCount 
+		
+		# Removing double quotes from the Log File Location path Variable 
+		delete quote from RelativeLocationOfLogFile
+		
+		# Storing the Absoulte Path of Script Log File into Variable
+		put ScriptResultFolder & "/" & RelativeLocationOfLogFile into AbsoluteLogFileLocation
+		
+		# Removing the LogFile.txt from Absoulte File path
+		put AbsoluteLogFileLocation into AbsoluteLogFileLocationPath
+		delete "LogFile.txt" from AbsoluteLogFileLocationPath
+		
+		# Storing the Exection Date and Time into Variable which is used as a part of Report Name
+		if ReportGenrationDateTime...
+			...is empty then
+				put RelativeLocationOfLogFile into RelativeLocationOfLogFilePath
+				delete "LogFile.txt" from RelativeLocationOfLogFilePath
+				delete "/" from RelativeLocationOfLogFilePath
+				put RelativeLocationOfLogFilePath into ReportGenrationDateTime
+		end if
+		
+		# Storing All Script names into Variable, used as HTML element in the script.
+		put "<option value='" & repeatIndex() & "'>" & item repeatIndex() of parameterList() & "</option>" after DDValuesAsScriptNames
+		
+		# Storing All Script Execution Status into Variable, used as HTML element in the script.
+		put repeatIndex() & ": '" & ExecutionStatus & "'," after ExecutionStatuValues
+		
+		# Creating Font Style and background Style for Table and storing into Variable, used as HTML element in the script.
+		if ExecutionStatus...
+			...is "Failure" then 
+				put "<h4 class='h4-red'><b>" & ExecutionStatus & "</b></h4>" into h4Tag
+				put "<tr style='background-color: #ff4d4d;'>" into trTagStyle
+			else 
+				put "<h4 class='h4-green'><b>" & ExecutionStatus & "</b></h4>" into h4Tag
+				put "<tr style='background-color: #66ff66;'>" into trTagStyle			
+		end if
+		
+		# Repeating Loop by each line of Log File of Script
+		repeat with each line of file AbsoluteLogFileLocation
+			
+			# Storing the Each Line into Variable as line by line in loop
+			put format(it) into SingleLineFromLogFile
+			
+			# Splitting the Each Line by Tab Key
+			split SingleLineFromLogFile by tabKey
+			
+			# Storing the Required Details into Variable
+			put item 1 of SingleLineFromLogFile into ExecutionDateTimeFromLogFile
+			put item 2 of SingleLineFromLogFile into ExecutionEventFromLogFile
+			put item 3 of SingleLineFromLogFile into ExecutionImageFromLogFile
+			put item 4 of SingleLineFromLogFile into ExecutionCommand
+			
+			# Checking Image is present or not. If present updating the HTML element which is used HTML script below
+			if (ExecutionImageFromLogFile contains ".png") or (ExecutionImageFromLogFile contains ".jpg") then
+				put AbsoluteLogFileLocationPath & ExecutionImageFromLogFile into ScreenshotLocation
+				put ScreenshotLocation into SSLocation
+				split SSLocation by "/"
+				put last item of SSLocation into SSImageName
+				split SSImageName by "."
+				put "<td><a href=" & quote & "data:image/PNG;base64," & base64Encode(file ScreenshotLocation) & quote & " target='_blank'>" & ExecutionImageFromLogFile & "</a></td>" into ImageRow
+			else
+				put "<td>" & ExecutionImageFromLogFile & "</td>" into ImageRow
+			end if
+			
+			# HTML element for Detailed Table 
+			put  "<tr style='background-color: #ebebe0;'>"&\
+					"<td>"&ExecutionDateTimeFromLogFile&"</td>"&\
+					"<td>"&ExecutionEventFromLogFile&"</td>"&ImageRow&\
+					"<td>"&ExecutionCommand&"</td>"&\
+					"</tr>" after trData
+		end repeat
+		
+		# HTML element script for the High Level Detailed Table
+		put 	"<table id='test-case-"&TableCount&"-report-"&ReportCount&"' class='hide-table'>"&trTagStyle&\
+				"<td><b>Test Name</b></td>"&\
+				"<td><b>Start Time</b></td>"&\
+				"<td><b>End Time</b></td>"&\
+				"<td><b>Duration</b></td>"&\
+				"<td><b>Errors</b></td>"&\
+				"<td><b>Successes</b></td>"&\
+				"<td><b>Exceptions</b></td>"&\
+				"<td><b>Warnings</b></td>"&\
+				"</tr>"&\
+				"<tr style='background-color: #ffffff;'>"&\
+				"<td>"&ScriptName&"</td>"&\
+				"<td>"&ExecutionDateRunWithOutMilliSeconds&"</td>"&\
+				"<td>"&FinalExecutionEndDateTime&"</td>"&\
+				"<td>"&ExecutionDuration&&"Seconds"&"</td>"&\
+				"<td>"&ExecutionErrors&"</td>"&\
+				"<td>"&ExecutionSuccesses&"</td>"&\
+				"<td>"&ExecutionExceptions&"</td>"&\
+				"<td>"&ExecutionWarnings&"</td>"&\
+				"</tr>"&\
+				"</table>"&\
+				"<br>"&\
+				"<br>"&\
+				"<table id='test-case-"&TableCount&"-report-"&ReportCount+1&"' class='hide-table'>"&trTagStyle&\
+				"<td><b>Logged At</b></td>"&\
+				"<td><b>Event</b></td>"&\
+				"<td><b>Image</b></td>"&\
+				"<td><b>Message</b></td>"&\
+				"</tr>"&trData&\
+				"</table>" after InitialDetailedTable
+		
+		# Setting the Variable to empty
+		set (ExecutionDetails, h4Property, trData) to empty
+		
+		# Incrementing the Table Count Variable
+		set TableCount to (TableCount + 1)
+		
+	End Repeat
+	
+	# HTML element for Test Case Status Table
+	put "<tr>"&\
+			"<td>"&\
+			"<select id='testCaseDropdown'>"&\
+			"<option value='select-test-case'>Select Test Case</option>"&DDValuesAsScriptNames&\
+			"</select>"&\
+			"</td>"&\
+			"<td id='statusCell'></td>"&\
+			"</tr>" into StatusDDTable
+	
+	# HTML element for Pie chart 
+	put "<br>"&\
+			"<h1 style='background-color: #ff4d4d;'>Test Report</h1>"&\
+			"<div class='outer-container'>"&\
+			"<div class='inner-container'>"&\
+			"<table id=overall_table>"&\
+			"<tr>"&\
+			"<th>Number of Tests</th>"&\
+			"<th>Passed</th>"&\
+			"<th>Failed</th>"&\
+			"</tr>"&\
+			"<tr>"&\
+			"<td>"&NumberOfScripts&"</td>"&\
+			"<td style='color: Green;'>"&TotalSuccessesCount&"</td>"&\
+			"<td style='color: Red;'>"&TotalErrorsCount&"</td>"&\
+			"</tr>"&\
+			"</table>"&\
+			"<div class='left-container'>"&\
+			"<table id=detailed_table>"&\
+			"<tr>"&\
+			"<th>Test Name</th>"&\
+			"<th>Status</th>"&\
+			"</tr>"&StatusDDTable&\
+			"</table>"&\
+			"</div>"&\
+			"<div class='right-container'>"&\
+			"<canvas id='testCasesChart' width='280' height='280'></canvas>"&\
+			"</div>"&\
+			"</div>"&\
+			"</div>"&\
+			"<script>"&\
+			"var ctx = document.getElementById('testCasesChart').getContext('2d');"&\
+			"var data = {"&\
+			"labels: ['Passed', 'Failed'],"&\
+			"datasets: [{"&\
+			"data: ["&TotalSuccessesCount&", "&TotalErrorsCount&"],"&\
+			"backgroundColor: ["&\
+			"'green',"&\
+			"'red'"&\
+			"]"&\
+			"}]"&\
+			"};"&\	
+			"var options = {"&\
+			"responsive: false,"&\
+			"maintainAspectRatio: false"&\
+			"};"&\
+			"var myPieChart = new Chart(ctx, {"&\
+			"type: 'pie',"&\
+			"data: data,"&\
+			"options: options"&\
+			"});"&\
+			"const testCaseDropdown = document.getElementById('testCaseDropdown');"&\
+			"const statusCell = document.getElementById('statusCell');"&\
+			"function updateStatus() {"&\
+			"const selectedTestCase = testCaseDropdown.value;"&\
+			"const testCaseStatuses = {"&ExecutionStatuValues&\
+			"};"&\
+			"const status = testCaseStatuses[selectedTestCase];"&\
+			"statusCell.textContent = status;"&\
+			"statusCell.classList.remove('passed', 'failed');"&\
+			"if (status === 'Success') {"&\
+			"statusCell.classList.add('passed');"&\
+			"} else if (status === 'Failure') {"&\
+			"statusCell.classList.add('failed');"&\
+			"}"&\
+			"}"&\	
+			"testCaseDropdown.addEventListener('change', updateStatus);"&\
+			"updateStatus();"&\
+			"document.getElementById('testCaseDropdown').addEventListener('change', function() {"&\
+			"var tables = document.querySelectorAll('.hide-table');"&\
+			"tables.forEach(function(table) {"&\
+			"table.style.display = 'none';"&\
+			"});"&\
+			"var selectedValue = this.value;"&\
+			"var fixedTableContainer = document.getElementById('fixed-table-container');"&\
+			"if (selectedValue !== 'select-test-case') {"&\
+			"for (var i = 1; i <= 2; i++) {"&\
+			"var selectedTable = document.getElementById('test-case-' + selectedValue + '-report-' + i);"&\
+			"if (selectedTable) {"&\
+			"var clonedTable = selectedTable.cloneNode(true);"&\
+			"fixedTableContainer.appendChild(clonedTable);"&\
+			"clonedTable.style.display = 'table';"&\
+			"}"&\
+			"}"&\
+			"}"&\
+			"});"&\
+			"</script>"  into PieAndTabel
+	
+	# Main HTML Structure 
+	set HTMLReport to "<!DOCTYPE html>"&\
+			"<html>"&\
+			"<head>"&\
+			"<meta charset='UTF-8'>"&\
+			"<meta name='viewport' content='width=device-width, initial-scale=1.0'>"&\
+			"<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"&\
+			"<title>Deatiled Report</title>"&\
+			"<style>"&\
+			".hide-table {"&\
+			"display: none;"&\
+			"}"&\
+			".passed {"&\
+			"color: green;"&\
+			"}"&\
+			".failed {"&\
+			"color: red;"&\
+			"}"&\
+			"#testCasesChart {"&\
+			"width: 30%;"&\
+			"}"&\
+			".outer-container {"&\
+			"display: flex;"&\
+			"justify-content: center;"&\
+			"align-items: center;"&\
+			"height: auto;"&\
+			"overflow: auto;"&\
+			"}"&\	
+			".inner-container {"&\
+			"display: flex;"&\
+			"align-items: center;"&\
+			"width: 100%;"&\
+			"padding: 20px;"&\
+			"}"&\
+			".left-container {"&\
+			"flex: 1;"&\
+			"}"&\
+			".right-container {"&\
+			"flex: 1;"&\
+			"display: flex;"&\
+			"justify-content: flex-end;"&\
+			"}"&\
+			"#detailed_table {"&\
+			"width: 60%;"&\
+			"border-collapse: collapse;"&\
+			"border: 1px solid black;"&\
+			"flex: 1;"&\
+			"padding: 20px;"&\
+			"margin-Left: 200px;"&\
+			"}"&\
+			"#detailed_table th, #detailed_table td {"&\
+			"padding: 8px;"&\
+			"text-align: left;"&\
+			"border: 1px solid black;"&\
+			"}"&\
+			"#detailed_table th {"&\
+			"border: 2px solid #000;"&\
+			"background-color: #f2f2f2;"&\
+			"}"&\	
+			"#overall_table {"&\
+			"width: auto;"&\
+			"border-collapse: collapse;"&\
+			"border: 1px solid black;"&\
+			"flex: 1;"&\
+			"padding: 20px;"&\
+			"}"&\	
+			"#overall_table th,"&\
+			"#overall_table td {"&\
+			"padding: 8px;"&\
+			"text-align: left;"&\
+			"border: 1px solid black;"&\
+			"}"&\
+			"#overall_table th {"&\
+			"border: 2px solid #000;"&\
+			"background-color: #f2f2f2;"&\
+			"}"&\
+			"table {"&\
+			"width: 100%;"&\
+			"}"&\
+			"td {"&\
+			"width: 05%;"&\
+			"height: 100%;"&\
+			"}"&\
+			"h1{"&\
+			"line-height :0px;"&\
+			"margin: 0;"&\
+			"padding: 0;"&\
+			"text-align: left;"&\
+			"}"&\
+			"h3 {"&\
+			"display: inline-block;"&\
+			"line-height :0px;"&\
+			"margin: 0;"&\
+			"padding: 0;"&\
+			"}"&\
+			".h4-red {"&\
+			"color: #f70505;"&\
+			"line-height :0px;"&\
+			"margin: 0"&\
+			"padding: 0;"&\
+			"display: inline-block;"&\
+			"}"&\
+			".h4-green {"&\
+			"color: #269504;"&\
+			"line-height :0px;"&\
+			"margin: 0;"&\
+			"padding: 0;"&\
+			"display: inline-block;"&\
+			"}"&\
+			".test-case-container {"&\
+			"display: flex;"&\
+			"flex-direction: column;"&\
+			"}"&\
+			".placeholder {"&\
+			"width: 100%;"&\
+			"height: auto;"&\
+			"}"&\
+			"</style>"&\
+			"</head>"&\
+			"<body>"&PieAndTabel&\
+			"<div id='fixed-table-container'></div>"&\
+			"<div class='test-case-container'>"&\
+			"<div class='placeholder'>"&InitialDetailedTable&\
+			"</div>"&\
+			"</div>"&\
+			"<br>"&\
+			"<br>"&\
+			"</body>"&\
+			"</html>"	
+	
+	# Putting whole HTML Code into a file.
+	put HTMLReport into file ResourcePath(ReportGenrationDateTime & "Report.html")
+	
+end GenerateHtmlReport
+
+to SendReport ToMailId, MailSubject, MailBody
+	SendMail {To: ToMailId, \
+				Subject: MailSubject, \
+				Body: MailBody, \
+				Attachment: ResourcePath(ReportGenrationDateTime & "Report.html")}
+end SendReport

@@ -1,0 +1,18 @@
+﻿//Environment Wait
+set universal pagewait to 50
+
+//Common Data
+"CommonUtilities/ExternalFileInteractions".ReadSingleRecord "UserData.xlsx", "Common_Data", "Yet"
+set Global Browser to  Global CurrentRecord.Browser
+set Global Url to Global CurrentRecord.Url
+set Global Username to Global CurrentRecord.Username
+set Global Password to Global CurrentRecord.Password
+
+
+//Product Specific Data
+"CommonUtilities/ExternalFileInteractions".ReadSingleRecord "UserData.xlsx", "Product_Specific", "Yet"
+set Global ProductName to  Global CurrentRecord.ProductName
+set Global Ram to Global CurrentRecord.Ram
+set Global Hdd to Global CurrentRecord.Hdd
+set Global NoOfProducts to Global CurrentRecord.NoOfProducts
+

@@ -1,0 +1,39 @@
+﻿to launchNopcommerceApplication
+	"CommonUtilities/Core".launchURL Global Browser, Global Url
+	"CommonUtilities/Core".verifyEvent "logos/Nopcommerce", "Application Launched.", "Failed to Launch Application."	
+	"CommonUtilities/Custom".captureScreenShot "HomePage"
+end launchNopcommerceApplication
+
+
+to logOnToApplication
+	"CommonUtilities/Core".clickEvent "Log in", "Welcome, Please Sign In"
+	"CommonUtilities/Core".textEntryOffset "Email", Global Username, [90,0]
+	"CommonUtilities/Core".textEntryOffset "Password", Global Password, [90,0]
+	"CommonUtilities/Core".clickEvent "LOG IN", "Log out"
+	"CommonUtilities/Core".verifyEvent "Log out", "Log In is successful", "Failed to Log In"
+	"CommonUtilities/Custom".captureScreenShot "LoggedInPage"
+end logOnToApplication
+
+
+to navigateToDesktops
+	"CommonUtilities/Custom".clikSubMenu "Computers", "Desktops"
+	"CommonUtilities/Core".verifyEvent "Desktops", "Desktops page is loaded successful.", "Failed to Desktops page."
+	"CommonUtilities/Custom".captureScreenShot "DesktopsPage"
+end navigateToDesktops
+
+
+to navigateToShoppingCart
+	"CommonUtilities/BrowserUtilities".scrollToBeginingOfPage
+	"CommonUtilities/Core".clickEvent "Shopping cart", "Product(s)"
+	"CommonUtilities/Custom".captureScreenShot "CartPage"
+end navigateToShoppingCart
+
+
+to selectContinueShopping
+	"CommonUtilities/BrowserUtilities".scrollToBeginingOfPage
+	"CommonUtilities/Core".setTextstyle "GrayText"
+	"CommonUtilities/Core".scrollTo "Continue shopping", "FullScreen"
+	"CommonUtilities/Core".clickAtLocation FoundImageLocation()
+	"CommonUtilities/Core".setTextstyle "Default"
+	"CommonUtilities/Custom".captureScreenShot "ProductsPage"
+end selectContinueShopping

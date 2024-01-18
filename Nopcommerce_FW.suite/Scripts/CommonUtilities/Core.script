@@ -1,0 +1,320 @@
+﻿(**  
+Common - Handlers for the Common Functions used in test
+@Version 1.1 05/06//2023 
+@ChangeReason Updates to handlers
+
+"This software is copyright Keysight TechnoLogies, Inc. and licensed under the terms of Keysight’s End User License Agreement. Terms of Keysight’s EULA may be found here: www.keysight.com/find/sweula By using this Software, you agree to the terms of the Keysight EULA."
+**) 
+
+
+# to set the searchrectangle over the appliation
+function ScreenPart Portion
+	set screenPortions to {
+		TopHalf: [[0,0],[1,.5]],
+		BottomHalf: [[0,.5],[1,1]],
+		LeftHalf: [[0,0],[.5,1]],
+		RightHalf: [[.5,0],[1,1]],
+		HorizontalMiddle: [[0,.25],[1,.75]],
+		VerticalMiddle:[[.25,0],[.75,1]],
+		TopLeftQuadrant:[[0,0],[.5,.5]],
+		Header:[[0,.1],[1,.25]],
+		TopRightQuadrant:[[.5,0],[1,.5]],
+		BottomLeftQuadrant:[[0,.5],[.5,1]],
+		BottomRightQuadrant:[[.5,.5],[1,1]],
+		Center:[[.25,.25],[.75,.75]],
+		HalfOfTopHalf:[[0,0],[1,.25]],
+		HalfOfHalfOfTopHalf:[[0,0],[0.5,.15]],
+		HalfOfLeftHalf:[[0,0],[.25,1]],
+		HalfOfRightHalf:[[.75,0],[1,1]],
+		QuarterOfTopHalf:[[0,0],[1,.15]],
+		LeftHalfOfTopLeftQuadrant:[[0,0],[.25,.5]],
+		HalfOfTopLeftQuadrant:[[0,0],[.25,.25]],
+		RightHalfOfTopLeftQuadrant:[[0,.25],[.45,.5]],
+		RightHalfOfTopRightQuadrant:[[.75,0],[1,.5]],
+		RightHalfOfBottomLeftQuadrant:[[.25,.45],[.45,1]],
+		LeftHalfOfBottomLeftQuadrant:[[0,.45],[.25,1]],
+		LeftHalfOfBottomRightQuadrant:[[.5,.45],[.75,1]],
+		RightHalfOfBottomRightQuadrant:[[.75,.45],[1,1]],
+		FullScreen:[[0,0],[1,1]],
+	}
+	set multiplier to screenPortions.(Portion)		
+	if multiplier is empty then throw "Parameter error", Portion && "is not a recognized screen portion."			
+	return [the remoteScreenSize,the remotescreenSize] * multiplier
+end ScreenPart
+
+# setting text style
+to setTextstyle txtStyle
+	set properties to{
+		Default: empty,
+		GrayText:{contrastColor:[200,200,200], contrast:"On", contrastTolerance:"45"},
+		version:{dpi:144,validCharacters:"v.10"},
+		lightBlueButton:{contrastColor:[216,231,255], contrast:"On", contrastTolerance:"45"},
+		Dots144:{dpi:144},
+	}	
+	Try
+		set the TextStyle to properties.(txtStyle)
+	Catch
+		Log txtStyle && "is not a recognized Style Properties."
+		set the TextStyle to  empty
+	End try
+	return the TextStyle	
+end setTextstyle
+
+
+# to get connection Name of the SUT
+to getConnectionName
+	if connectionInfo().Status is "Connected" then
+		put ConnectionInfo().Name into ConnectionName
+	end if
+	return ConnectionName
+end getConnectionName
+
+
+#to launch the URL on a desired browser
+to launchURL browser,url
+	set global browser to browser
+	TypeText windowskey,"r"
+	wait 1
+	TypeText browser&&url,returnkey
+	TypeText windowskey, upArrow // maximize window on windows
+end launchURL
+
+
+# to launch enterprise application by passing required application path
+to launchApplication path,expectedOutcome
+	TypeText windowskey,"r"
+	TypeText path,returnkey
+	wait 15
+	TypeText windowskey, upArrow // maximize window on windows
+	waitForValidation expOutcome
+end launchApplication
+
+
+# to perform kill operation over application
+to killApplicationOnSUT application
+	TypeText windowsKey,"r"
+	TypeText "taskkill /im"&&application&&"/t /f",return
+end killApplicationOnSUT
+
+
+# to validate 
+to waitForValidation expOutcome
+	if (expOutcome is not empty) then
+		if file (suiteinfo().imagesFolder&"/"&expOutcome&".png") exists or folder (suiteinfo().imagesFolder&"/"&expOutcome) exists then
+			WaitFor Universal pageWait, {image:expOutcome}
+		else
+			WaitFor Universal pageWait, {text:expOutcome, IgnoreNewlines:"Yes", IgnoreSpaces:"Yes", TrimWhitespace:"Yes"}
+		end if
+	end if
+end waitForValidation
+
+
+# to perform click operation over application
+to clickEvent myObject,expOutcome
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		Click {image:myObject, WaitFor:Universal pageWait}
+	else
+		Click {text:myObject, WaitFor:Universal pageWait, IgnoreNewlines:"Yes", IgnoreSpaces:"Yes", TrimWhitespace:"Yes",caseSensitive:true}
+	end if
+	waitForValidation expOutcome
+end clickEvent
+
+
+# to perform click operation over application with hotspot in a field
+to clickEventOffset myObject, offset, expOutcome
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		Click {image:myObject, hotspot: offset, WaitFor:Universal pageWait}
+	else
+		Click {text:myObject, hotspot: offset, WaitFor:Universal pageWait, IgnoreNewlines:"Yes", IgnoreSpaces:"Yes", TrimWhitespace:"Yes",caseSensitive:true}
+	end if
+	waitForValidation expOutcome
+end clickEventOffset
+
+
+# to perform click operation at a given location
+to clickAtLocation Location
+	Click Location
+end clickAtLocation
+
+
+# to perform double click operation over application
+to doubleClickEvent myObject,expOutcome
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		DoubleClick {image:myObject, WaitFor:Universal pageWait}
+	else
+		DoubleClick {text:myObject, WaitFor:Universal pageWait, IgnoreNewlines:"Yes", IgnoreSpaces:"Yes", TrimWhitespace:"Yes",caseSensitive:true}
+	end if
+	waitForValidation expOutcome
+end doubleClickEvent
+
+# to perform right click operation over application
+to rightClickEvent myObject,expOutcome
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		RightClick {image:myObject, WaitFor:Universal pageWait}
+	else
+		RightClick {text:myObject, WaitFor:Universal pageWait, IgnoreNewlines:"Yes", IgnoreSpaces:"Yes", TrimWhitespace:"Yes",caseSensitive:true}
+	end if
+	waitForValidation expOutcome
+end rightClickEvent
+
+
+# to perform right click operation over application with hotspot in a field
+to rightClickEventOffset myObject, offset, expOutcome
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		RightClick {image:myObject, hotspot: offset, WaitFor:Universal pageWait}
+	else
+		RightClick {text:myObject, hotspot: offset, WaitFor:Universal pageWait, IgnoreNewlines:"Yes", IgnoreSpaces:"Yes", TrimWhitespace:"Yes",caseSensitive:true}
+	end if
+	waitForValidation expOutcome
+end rightClickEventOffset
+
+
+# to perform type operation over application
+to textEntry myObject
+	TypeText controlKey,"a"
+	TypeText myObject,return
+end textEntry
+
+
+# to perform type operation over application with hotspot in a field
+to textEntryOffset label, input, offset
+	click text: label, hotspot: offset
+	wait 0.5
+	TypeText controlkey, "a"
+	//TypeText input, return
+	TypeText input
+	wait 0.3
+end textEntryOffset
+
+
+# to perform DoubleClick action over an element
+to doubleClickTextEntry label,input, SR, offset
+	DoubleClick CenterLeft of scrollTo(label, SR) + offset
+	wait 0.5
+	TypeText input
+	wait 0.3
+end doubleClickTextEntry
+
+
+# to input masked text into a text field or area using some offset value -- used for typing passwords or sensitive information
+to hiddenTextEntry label,input, SR, offset
+	click CenterLeft of scrollTo(label, SR) + offset
+	wait 0.5
+	TypeText controlKey,"a"
+	typehiddentext input
+	wait 0.3
+end hiddenTextEntry
+
+
+#to scroll to an element using image/text
+to scrollTo toFind, SR
+	--Images 
+	if file (suiteinfo().imagesFolder&"/"&toFind&".png") exists then
+		repeat until imagefound(0, image:toFind, WaitFor:Universal pageWait, searchRectangle:ScreenPart(SR))
+			ScrollWheelDown 5
+			wait 1
+			if (repeatindex() > 10) then 
+				LogError "Cannot find"&&toFind
+				Exit repeat
+			end if
+		end repeat
+	else
+		--OCR
+		repeat until imagefound(text:toFind, WaitFor:Universal pageWait, searchRectangle:ScreenPart(SR), ignoreNewlines:on, ignorespaces:on)
+			ScrollWheelDown 5
+			wait 1
+			if (repeatindex() > 10) then 
+				LogError "Cannot find"&&toFind
+				Exit repeat
+			end if
+		end repeat
+	end if
+	return foundimageinfo().imageRectangle 
+end scrollTo
+
+
+# to perform click action and vadidate something over the screen
+to navigateTo action, SR, SR2, expectation
+	// do something
+	if (action is not empty) then
+		click the center of common.scrollTo(action, SR)
+		wait 2
+	end if 
+	// check something
+	waitForValidation expOutcome
+	wait 1
+end navigateTo
+
+
+# to select or unselect a checkbox
+to checkBox label, SR, offset
+	click the CenterLeft of scrollTo(label, SR) + offset
+	wait 0.5
+end checkBox
+
+
+# to select a value from dropdown list
+to dropDown label,input, SR, offset
+	click the Center of scrollTo(label, SR) + offset
+	wait 0.5
+	click the Center of scrollTo(input, SR) + selectionOffset
+	wait 0.3
+end dropDown
+
+
+# to perform search operation over application
+to searchTextEntry label,input, SR, offset
+	click CenterLeft of scrollTo(label, SR) + offset
+	wait 0.5
+	TypeText controlKey,"a"
+	TypeText input
+	wait 0.3
+end searchTextEntry
+
+
+# to select subMenu item
+to subMenuSelect subMenu, selection, SR, SR2, SR3, expectation
+	navigateTo subMenu, SR, SR2
+	wait 0.3
+	navigateTo selection, SR2, SR3, expectation
+end subMenuSelect
+
+
+# to perform move operation over application
+to moveToEvent myObject
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		MoveTo {image:myObject, WaitFor:Universal pageWait}
+	else
+		MoveTo {text:myObject, WaitFor:Universal pageWait}
+	end if
+end moveToEvent
+
+
+# to perform move operation with offset over application
+to moveToEventOffset myObject, offset
+	if file (suiteinfo().imagesFolder&"/"&myObject&".png") exists or folder (suiteinfo().imagesFolder&"/"&myObject) exists then
+		MoveTo {image:myObject, hotspot:offset, WaitFor:Universal pageWait}
+	else
+		MoveTo {text:myObject, hotspot: offset, WaitFor:Universal pageWait}
+	end if
+end moveToEventOffset
+
+
+# to perform verify operation over application
+to verifyEvent verifyObject,successMsg,errorMsg	
+	if file (suiteinfo().imagesFolder&"/"&verifyObject&".png") exists or if folder (suiteinfo().imagesFolder&"/"&verifyObject) exists then
+		if ImageFound(image:verifyObject, WaitFor:Universal pageWait) then Log successMsg else LogWarning errorMsg
+	else
+		if ImageFound(text:verifyObject, WaitFor:Universal pageWait) then Log successMsg else LogWarning errorMsg
+	end if
+end verifyEvent
+
+
+# to perform verify operation over application that is not present
+to verifyEventNotPresent verifyObject,successMsg,errorMsg	
+	if file (suiteinfo().imagesFolder&"/"&verifyObject&".png") exists or if folder (suiteinfo().imagesFolder&"/"&verifyObject) exists then
+		if not ImageFound(image:verifyObject, WaitFor:Universal pageWait) then Log successMsg else LogWarning errorMsg
+	else
+		if not ImageFound(text:verifyObject, WaitFor:Universal pageWait) then Log successMsg else LogWarning errorMsg
+	end if
+end verifyEventNotPresent

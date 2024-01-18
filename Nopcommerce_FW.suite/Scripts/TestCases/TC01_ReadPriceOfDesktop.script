@@ -1,0 +1,9 @@
+﻿Run "CommonUtilities/VariableData"
+"CommonUtilities/ApplicationUtilities".launchNopcommerceApplication
+"CommonUtilities/ApplicationUtilities".navigateToDesktops
+"CommonUtilities/Custom".select_BuildOwnComputer
+"CommonUtilities/Custom".fill_Options_For_BuildingOwnComputer
+"CommonUtilities/ApplicationUtilities".navigateToShoppingCart
+"CommonUtilities/Custom".readPriceandTotal
+"CommonUtilities/ApplicationUtilities".selectContinueShopping
+"CommonUtilities/BrowserUtilities".terminateAllWindows
